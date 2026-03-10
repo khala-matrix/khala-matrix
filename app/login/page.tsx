@@ -101,6 +101,13 @@ export default function LoginPage() {
               >
                 Sign in to dashboard
               </button>
+
+              <Link
+                href="/dashboard"
+                className="inline-flex text-sm font-semibold text-[var(--brand)] transition hover:brightness-90"
+              >
+                Open dashboard preview
+              </Link>
             </form>
           </div>
         </section>
