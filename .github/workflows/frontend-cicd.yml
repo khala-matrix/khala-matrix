@@ -6,21 +6,20 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  IMAGE_NAME: kha-frontend
+  CONTAINER_NAME: kha-frontend
+  APP_PORT: "8500"
+
 jobs:
   build-test-deploy:
     runs-on: self-hosted
 
-    env:
-      IMAGE_NAME: kha-frontend
-      IMAGE_TAG: ${{ github.sha }}
-      CONTAINER_NAME: kha-frontend
-      APP_PORT: "8500"
-
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -35,12 +34,25 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Build Docker image with commit id
-        run: |
-          docker build \
-            -t "$IMAGE_NAME:$IMAGE_TAG" \
-            -t "$IMAGE_NAME:latest" \
-            .
+      # 最佳实践 1：配置独立的 Buildx 构建器，彻底隔离 Mac 本地的 keychain
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+
+      # 最佳实践 2：使用官方 Build Action 并开启 BuildKit 缓存
+      - name: Build and export Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          # load: true 非常关键，它会将隔离构建器打包好的镜像加载回 Mac mini 宿主机
+          load: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:latest
+          # 针对 Next.js 和 Monorepo 的多层构建，利用 GHA 缓存可以极大地提升二次构建速度
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Deploy container
         run: |
@@ -49,9 +61,19 @@ jobs:
             --name "$CONTAINER_NAME" \
             --restart unless-stopped \
             -p "$APP_PORT:$APP_PORT" \
-            "$IMAGE_NAME:$IMAGE_TAG"
+            "${{ env.IMAGE_NAME }}:${{ github.sha }}"
 
+      # 最佳实践 3：增强型部署验证
       - name: Verify deployment
         run: |
           sleep 5
-          docker ps --filter "name=$CONTAINER_NAME"
+          if ! docker ps --filter "name=$CONTAINER_NAME" | grep -q "$CONTAINER_NAME"; then
+            echo "Deployment failed! Container is not running."
+            docker logs "$CONTAINER_NAME"
+            exit 1
+          fi
+          echo "Deployment successful."
+
+      # 最佳实践 4：自托管节点的系统清理
+      - name: Clean up dangling images
+        run: docker image prune -f
