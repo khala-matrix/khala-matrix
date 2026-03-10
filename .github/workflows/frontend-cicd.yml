@@ -1,0 +1,57 @@
+name: Frontend CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-test-deploy:
+    runs-on: self-hosted
+
+    env:
+      IMAGE_NAME: kha-frontend
+      IMAGE_TAG: ${{ github.sha }}
+      CONTAINER_NAME: kha-frontend
+      APP_PORT: "8500"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Build Docker image with commit id
+        run: |
+          docker build \
+            -t "$IMAGE_NAME:$IMAGE_TAG" \
+            -t "$IMAGE_NAME:latest" \
+            .
+
+      - name: Deploy container
+        run: |
+          docker rm -f "$CONTAINER_NAME" || true
+          docker run -d \
+            --name "$CONTAINER_NAME" \
+            --restart unless-stopped \
+            -p "$APP_PORT:$APP_PORT" \
+            "$IMAGE_NAME:$IMAGE_TAG"
+
+      - name: Verify deployment
+        run: |
+          sleep 5
+          docker ps --filter "name=$CONTAINER_NAME"
