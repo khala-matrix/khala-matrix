@@ -41,6 +41,12 @@ export default async function Home() {
           </div>
           <div className="flex items-center gap-3 text-sm font-semibold">
             <Link
+              href="/office"
+              className="rounded-full border border-[var(--line)] bg-white/80 px-4 py-2 transition hover:border-[var(--primary)] hover:text-[var(--primary)]"
+            >
+              Office
+            </Link>
+            <Link
               href="/dashboard"
               className="rounded-full border border-[var(--line)] bg-white/80 px-4 py-2 transition hover:border-[var(--primary)] hover:text-[var(--primary)]"
             >

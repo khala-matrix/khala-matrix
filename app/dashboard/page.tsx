@@ -36,6 +36,12 @@ export default async function DashboardPage() {
               {mode} mode
             </p>
             <Link
+              href="/office"
+              className="rounded-full border border-[var(--line)] bg-white/85 px-4 py-2 text-sm font-semibold transition hover:border-[var(--primary)] hover:text-[var(--primary)]"
+            >
+              Office
+            </Link>
+            <Link
               href="/"
               className="rounded-full border border-[var(--line)] bg-white/85 px-4 py-2 text-sm font-semibold transition hover:border-[var(--primary)] hover:text-[var(--primary)]"
             >

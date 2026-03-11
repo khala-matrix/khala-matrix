@@ -1,6 +1,7 @@
 # Signal Atlas (KHA-9)
 
 Modern Next.js website for **AI Domain Hot Topics** with a backend-ready data contract and mock data fallback.
+KHA-11 adds an **OpenClaw Office** view for live agent status operations.
 
 ## Run
 
@@ -10,6 +11,22 @@ npm run dev
 ```
 
 App runs on `http://localhost:3000`.
+
+## OpenClaw Office View
+
+- Route: `http://localhost:3000/office`
+- Agent snapshot source (default): `http://127.0.0.1:18789/v1/agents/status`
+- Gateway latest update source (default): `http://127.0.0.1:18789/v1/gateway/status/latest`
+
+Environment variables:
+
+```bash
+OPENCLAW_OFFICE_DATA_SOURCE=live   # or mock
+OPENCLAW_AGENT_STATUS_URL=http://127.0.0.1:18789/v1/agents/status
+OPENCLAW_GATEWAY_LATEST_STATUS_URL=http://127.0.0.1:18789/v1/gateway/status/latest
+```
+
+Implementation plan: `docs/openclaw-office-ui-plan.md`
 
 ## Data Loading Modes
 

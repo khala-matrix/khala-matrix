@@ -93,6 +93,12 @@ export default function LoginPage() {
               >
                 Open dashboard preview
               </Link>
+              <Link
+                href="/office"
+                className="inline-flex text-sm font-semibold text-[var(--primary)] hover:brightness-95"
+              >
+                Open office control room
+              </Link>
             </form>
           </div>
         </section>
