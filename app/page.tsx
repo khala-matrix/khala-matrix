@@ -1,157 +1,206 @@
 import Link from "next/link";
+import { loadHotTopicsPageData } from "@/lib/hot-topics/load-hot-topics";
+import { Topic } from "@/lib/hot-topics/types";
 
-export default function Home() {
-  const features = [
-    {
-      title: "Encrypted Transport",
-      text: "Route every packet through a secure tunnel with modern key exchange and strict endpoint validation.",
-    },
-    {
-      title: "Fast Provisioning",
-      text: "Spin up client and server peers in minutes with repeatable templates and one-command bootstrap flows.",
-    },
-    {
-      title: "Observability Built In",
-      text: "Track tunnel health, handshake latency, and traffic patterns from a single operations dashboard.",
-    },
-  ];
+const dateFormatter = new Intl.DateTimeFormat("en-US", {
+  dateStyle: "medium",
+  timeZone: "UTC",
+});
 
-  const steps = [
-    "Generate service identities for your client and server nodes.",
-    "Establish the tunnel and enforce policy-driven access controls.",
-    "Deploy applications over the private network with continuous monitoring.",
-  ];
+function formatGrowth(value: number) {
+  return `${value > 0 ? "+" : ""}${value.toFixed(1)}%`;
+}
+
+function maturityLabel(topic: Topic) {
+  if (topic.maturity === "mainstream") {
+    return "Mainstream";
+  }
+
+  if (topic.maturity === "scaling") {
+    return "Scaling";
+  }
+
+  return "Emerging";
+}
+
+export default async function Home() {
+  const { data, mode } = await loadHotTopicsPageData();
 
   return (
-    <div className="relative isolate min-h-screen overflow-hidden bg-[var(--canvas)] text-[var(--ink)]">
-      <div className="grid-overlay" />
-      <div className="floating-orb floating-orb--one" />
-      <div className="floating-orb floating-orb--two" />
+    <div className="app-shell">
+      <div className="glow-orb glow-orb--one" />
+      <div className="glow-orb glow-orb--two" />
 
-      <main className="mx-auto flex w-full max-w-6xl flex-col px-6 pb-16 pt-8 md:px-10 md:pt-10 lg:px-14">
-        <nav className="fade-up mb-16 flex items-center justify-between">
-          <p className="text-lg font-semibold tracking-[0.14em] text-[var(--brand)]">
-            KHALA MATRIX
-          </p>
-          <div className="flex items-center gap-3">
-            <a
-              className="rounded-full border border-[var(--line)] px-5 py-2 text-sm font-semibold transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
-              href="#launch"
-            >
-              Launch Preview
-            </a>
+      <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-5 pb-16 pt-7 md:px-10 md:pt-10 lg:px-12">
+        <nav className="stagger flex items-center justify-between" style={{ animationDelay: "0.04s" }}>
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-[var(--muted)]">
+              Signal Atlas
+            </p>
+            <p className="text-lg font-semibold">AI Topic Radar</p>
+          </div>
+          <div className="flex items-center gap-3 text-sm font-semibold">
             <Link
-              className="rounded-full bg-[var(--brand)] px-5 py-2 text-sm font-semibold text-[var(--brand-ink)] transition hover:-translate-y-0.5 hover:brightness-110"
-              href="/login"
+              href="/dashboard"
+              className="rounded-full border border-[var(--line)] bg-white/80 px-4 py-2 transition hover:border-[var(--primary)] hover:text-[var(--primary)]"
             >
-              Log In
+              Dashboard
+            </Link>
+            <Link
+              href="/login"
+              className="rounded-full bg-[var(--primary)] px-4 py-2 text-[var(--primary-ink)] transition hover:brightness-105"
+            >
+              Analyst Access
             </Link>
           </div>
         </nav>
 
-        <section className="mb-20 grid gap-10 md:grid-cols-[1.25fr_0.75fr] md:items-end">
-          <div className="space-y-7">
-            <p className="fade-up inline-block rounded-full border border-[var(--line)] bg-[var(--surface)] px-4 py-2 text-xs font-semibold tracking-[0.16em] text-[var(--muted)] [animation-delay:0.06s]">
-              PRIVATE CLIENT-SERVER NETWORK
+        <section className="grid gap-7 md:grid-cols-[1.2fr_0.8fr] md:items-end">
+          <div className="space-y-5">
+            <p
+              className="stagger badge inline-flex rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em]"
+              style={{ animationDelay: "0.08s" }}
+            >
+              Live Intelligence Feed
             </p>
-            <h1 className="fade-up text-4xl font-semibold leading-tight tracking-tight [animation-delay:0.14s] md:text-6xl">
-              Ship secure connections
-              <span className="block text-[var(--brand)]">
-                without edge complexity
-              </span>
+            <h1
+              className="stagger text-4xl font-semibold leading-tight tracking-tight text-[var(--ink)] md:text-6xl"
+              style={{ animationDelay: "0.13s" }}
+            >
+              {data.headline}
             </h1>
-            <p className="fade-up max-w-xl text-lg leading-relaxed text-[var(--muted)] [animation-delay:0.22s]">
-              KHA-5 builds a hardened tunnel between your clients and servers so
-              your product traffic stays private, observable, and reliable from
-              day one.
+            <p
+              className="stagger max-w-2xl text-base leading-relaxed text-[var(--muted)] md:text-lg"
+              style={{ animationDelay: "0.2s" }}
+            >
+              {data.subheadline}
             </p>
-            <div className="fade-up flex flex-wrap gap-4 [animation-delay:0.3s]">
-              <Link
-                className="rounded-full bg-[var(--brand)] px-6 py-3 text-sm font-semibold text-[var(--brand-ink)] transition hover:-translate-y-0.5 hover:brightness-110"
-                href="/login"
-              >
-                Start Network Setup
-              </Link>
-              <a
-                className="rounded-full border border-[var(--line)] px-6 py-3 text-sm font-semibold transition hover:border-[var(--brand)] hover:text-[var(--brand)]"
-                href="#features"
-              >
-                Explore Features
-              </a>
-            </div>
+            <p
+              className="stagger font-mono text-xs text-[var(--muted)]"
+              style={{ animationDelay: "0.25s" }}
+            >
+              Data source: <span className="font-semibold uppercase">{mode}</span> mode | Snapshot {dateFormatter.format(new Date(data.generatedAt))}
+            </p>
           </div>
 
-          <aside className="fade-up rounded-3xl border border-[var(--line)] bg-[var(--surface)]/80 p-7 backdrop-blur [animation-delay:0.28s]">
-            <p className="mb-4 text-sm font-semibold text-[var(--muted)]">
-              Network Snapshot
+          <aside className="stagger panel rounded-3xl p-6" style={{ animationDelay: "0.24s" }}>
+            <h2 className="text-lg font-semibold">Today’s briefing</h2>
+            <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
+              {data.briefing[0]?.headline}
             </p>
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--canvas)] p-4">
-                <p className="text-xs text-[var(--muted)]">Average Handshake</p>
-                <p className="text-2xl font-semibold text-[var(--brand)]">
-                  48 ms
-                </p>
-              </div>
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--canvas)] p-4">
-                <p className="text-xs text-[var(--muted)]">
-                  Tunnel Availability
-                </p>
-                <p className="text-2xl font-semibold text-[var(--brand)]">
-                  99.98%
-                </p>
-              </div>
-              <div className="rounded-2xl border border-[var(--line)] bg-[var(--canvas)] p-4">
-                <p className="text-xs text-[var(--muted)]">New Peer Setup</p>
-                <p className="text-2xl font-semibold text-[var(--brand)]">
-                  &lt; 2 min
-                </p>
-              </div>
-            </div>
+            <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">
+              {data.briefing[0]?.impact}
+            </p>
           </aside>
         </section>
 
-        <section id="features" className="mb-20">
-          <h2 className="mb-8 text-2xl font-semibold tracking-tight md:text-3xl">
-            Why teams choose this stack
-          </h2>
-          <div className="grid gap-5 md:grid-cols-3">
-            {features.map((feature, index) => (
+        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {data.stats.map((stat, index) => (
+            <article
+              key={stat.id}
+              className="stagger panel rounded-2xl p-4"
+              style={{ animationDelay: `${0.1 + index * 0.05}s` }}
+            >
+              <p className="text-xs uppercase tracking-[0.12em] text-[var(--muted)]">{stat.label}</p>
+              <p className="mt-2 text-3xl font-semibold tracking-tight">{stat.value}</p>
+              <p className="mt-2 text-sm font-medium text-[var(--accent)]">{stat.delta}</p>
+            </article>
+          ))}
+        </section>
+
+        <section className="space-y-5">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">Top AI domains right now</h2>
+            <p className="text-sm text-[var(--muted)]">Sorted by internal heat score and weekly movement.</p>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            {data.topics.map((topic, index) => (
               <article
-                key={feature.title}
-                className="fade-up rounded-3xl border border-[var(--line)] bg-[var(--surface)]/70 p-6 backdrop-blur [animation-fill-mode:both]"
-                style={{ animationDelay: `${0.12 + index * 0.08}s` }}
+                key={topic.id}
+                className="stagger panel-strong rounded-3xl p-5"
+                style={{ animationDelay: `${0.16 + index * 0.05}s` }}
               >
-                <h3 className="mb-3 text-xl font-semibold">{feature.title}</h3>
-                <p className="text-sm leading-relaxed text-[var(--muted)]">
-                  {feature.text}
-                </p>
+                <div className="mb-4 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
+                      {topic.domain}
+                    </p>
+                    <h3 className="mt-1 text-xl font-semibold">{topic.title}</h3>
+                  </div>
+                  <div className="badge rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em]">
+                    {maturityLabel(topic)}
+                  </div>
+                </div>
+
+                <p className="text-sm leading-relaxed text-[var(--muted)]">{topic.summary}</p>
+
+                <div className="mt-4 grid gap-2 rounded-2xl border border-[var(--line)] bg-white/80 p-3 text-sm sm:grid-cols-2">
+                  <p>
+                    <span className="font-semibold text-[var(--ink)]">Heat score:</span> {topic.heatScore}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-[var(--ink)]">Weekly growth:</span> {formatGrowth(topic.weeklyGrowthPercent)}
+                  </p>
+                </div>
+
+                <ul className="mt-4 space-y-2">
+                  {topic.notableSignals.slice(0, 2).map((signal) => (
+                    <li key={signal} className="rounded-xl border border-[var(--line)] bg-white/80 px-3 py-2 text-sm text-[var(--muted)]">
+                      {signal}
+                    </li>
+                  ))}
+                </ul>
               </article>
             ))}
           </div>
         </section>
 
-        <section
-          id="launch"
-          className="rounded-3xl border border-[var(--line)] bg-[var(--surface)] px-6 py-8 md:px-10"
-        >
-          <h2 className="mb-6 text-2xl font-semibold tracking-tight md:text-3xl">
-            Build your private route in 3 steps
-          </h2>
-          <ol className="grid gap-4 md:grid-cols-3">
-            {steps.map((step, index) => (
-              <li
-                key={step}
-                className="rounded-2xl border border-[var(--line)] bg-[var(--canvas)] p-5"
-              >
-                <p className="mb-3 text-xs font-semibold tracking-[0.14em] text-[var(--brand)]">
-                  STEP 0{index + 1}
-                </p>
-                <p className="text-sm leading-relaxed text-[var(--muted)]">
-                  {step}
-                </p>
-              </li>
-            ))}
-          </ol>
+        <section className="grid gap-5 lg:grid-cols-[1.05fr_0.95fr]">
+          <article className="panel rounded-3xl p-6">
+            <h2 className="text-2xl font-semibold">Latest timeline</h2>
+            <ul className="mt-5 space-y-3">
+              {data.briefing.map((item) => (
+                <li key={item.id} className="rounded-2xl border border-[var(--line)] bg-white/85 p-4">
+                  <p className="font-mono text-xs text-[var(--muted)]">{item.date}</p>
+                  <p className="mt-2 text-base font-semibold">{item.headline}</p>
+                  <p className="mt-2 text-sm text-[var(--muted)]">{item.impact}</p>
+                </li>
+              ))}
+            </ul>
+          </article>
+
+          <article className="panel rounded-3xl p-6">
+            <h2 className="text-2xl font-semibold">Watchlist and feeds</h2>
+            <p className="mt-2 text-sm text-[var(--muted)]">
+              Key events and source feeds used to fill the topic model payload.
+            </p>
+
+            <ul className="mt-5 space-y-2">
+              {data.watchlist.map((item) => (
+                <li key={item} className="rounded-xl border border-[var(--line)] bg-white/85 px-3 py-2 text-sm text-[var(--muted)]">
+                  {item}
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-5 grid gap-3">
+              {data.sources.map((source) => (
+                <a
+                  key={source.id}
+                  href={source.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-xl border border-[var(--line)] bg-white/85 px-3 py-2 text-sm transition hover:border-[var(--primary)]"
+                >
+                  <p className="font-semibold">{source.name}</p>
+                  <p className="mt-1 font-mono text-xs uppercase tracking-[0.08em] text-[var(--muted)]">
+                    {source.type} | checked {dateFormatter.format(new Date(source.lastCheckedAt))}
+                  </p>
+                </a>
+              ))}
+            </div>
+          </article>
         </section>
       </main>
     </div>
