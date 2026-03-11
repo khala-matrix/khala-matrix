@@ -1,0 +1,101 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-cicd.yml"
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: kha-backend
+  CONTAINER_NAME: kha-backend
+  APP_PORT: "8080"
+
+jobs:
+  build-test-deploy:
+    runs-on: self-hosted
+    environment: MacMini
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache-dependency-path: backend/go.sum
+
+      - name: Vet
+        run: go vet ./...
+        working-directory: backend
+
+      - name: Test
+        run: go test ./...
+        working-directory: backend
+
+      - name: Unlock macOS Keychain
+        run: security unlock-keychain -p "${{ secrets.KEYCHAIN_PASSWORD }}" ~/Library/Keychains/login.keychain-db
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+
+      - name: Build and export Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          load: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Write backend .env for deploy
+        run: |
+          cat > /tmp/kha-backend.env <<'ENVEOF'
+          PORT=${{ vars.BACKEND_PORT || '8080' }}
+          FRONTEND_ORIGIN=${{ vars.FRONTEND_ORIGIN }}
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          SUPABASE_URL=${{ vars.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY=${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SECRET_KEY=${{ secrets.SUPABASE_SECRET_KEY }}
+          OPENCLAW_GATEWAY_WS_URL=${{ vars.OPENCLAW_GATEWAY_WS_URL }}
+          OPENCLAW_TOKEN=${{ secrets.OPENCLAW_TOKEN }}
+          DEVICE_IDENTITY_PATH=/data/device-identity.json
+          ENVEOF
+          # Strip leading whitespace from heredoc
+          sed -i '' 's/^[[:space:]]*//' /tmp/kha-backend.env 2>/dev/null || sed -i 's/^[[:space:]]*//' /tmp/kha-backend.env
+
+      - name: Deploy container
+        run: |
+          docker rm -f "$CONTAINER_NAME" || true
+          docker run -d \
+            --name "$CONTAINER_NAME" \
+            --restart unless-stopped \
+            -p "$APP_PORT:$APP_PORT" \
+            --env-file /tmp/kha-backend.env \
+            -v kha-backend-data:/data \
+            "${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          rm -f /tmp/kha-backend.env
+
+      - name: Verify deployment
+        run: |
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:${{ env.APP_PORT }}/healthz >/dev/null 2>&1; then
+              echo "Deployment successful — healthz OK"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Deployment failed! healthz not responding."
+          docker logs "$CONTAINER_NAME"
+          exit 1
+
+      - name: Clean up dangling images
+        run: docker image prune -f

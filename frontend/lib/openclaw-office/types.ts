@@ -31,3 +31,25 @@ export type OpenclawOfficeSnapshot = {
   agents: OpenclawAgent[];
   lastGatewayUpdate: OpenclawGatewayStatusUpdate | null;
 };
+
+export type GatewayPairingStatus =
+  | "none"
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "connected";
+
+export type GatewayClientStatus = {
+  connected: boolean;
+  pairingStatus: GatewayPairingStatus;
+  pairingError?: string;
+  lastError?: string;
+  deviceId: string;
+  gatewayUrl: string;
+};
+
+export type GatewayStatusResponse = {
+  enabled: boolean;
+  message?: string;
+  status?: GatewayClientStatus;
+};

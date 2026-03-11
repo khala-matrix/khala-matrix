@@ -1,0 +1,264 @@
+openapi: "3.1.0"
+info:
+  title: Khala Matrix API
+  version: "0.1.0"
+  description: Shared API contract between frontend and backend.
+
+servers:
+  - url: http://localhost:8080/v1
+    description: Local backend
+
+paths:
+  /hot-topics/page-data:
+    get:
+      operationId: getHotTopicsPageData
+      summary: Full hot-topics page payload
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HotTopicsPageData"
+
+  /agents/status:
+    get:
+      operationId: getAgentsStatus
+      summary: Current agent snapshot
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OfficeSnapshot"
+
+  /gateway/status/latest:
+    get:
+      operationId: getLatestGatewayStatus
+      summary: Most recent gateway status update
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  latestUpdate:
+                    $ref: "#/components/schemas/GatewayStatusUpdate"
+
+  /ws:
+    get:
+      operationId: websocketConnect
+      summary: WebSocket endpoint for real-time agent status updates
+      description: |
+        Upgrade to WebSocket. Server pushes JSON `Event` messages.
+        Event types: `agent_status_change`, `webhook_received`.
+      responses:
+        "101":
+          description: Switching Protocols
+
+  /webhooks/{source}:
+    post:
+      operationId: receiveWebhook
+      summary: Generic webhook receiver
+      description: |
+        Accepts JSON payloads from external services (e.g. Linear, GitHub).
+        The `source` path param identifies the sender. Optionally set
+        `X-Event-Type` header; otherwise auto-detected from payload.
+      parameters:
+        - name: source
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Webhook source identifier (e.g. "linear", "github")
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  status:
+                    type: string
+
+  /healthz:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+
+components:
+  schemas:
+    MarketStat:
+      type: object
+      required: [id, label, value, delta]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        value:
+          type: string
+        delta:
+          type: string
+
+    Topic:
+      type: object
+      required: [id, title, domain, summary, heatScore, weeklyGrowthPercent, maturity, notableSignals, updatedAt]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        domain:
+          type: string
+        summary:
+          type: string
+        heatScore:
+          type: integer
+        weeklyGrowthPercent:
+          type: number
+        maturity:
+          type: string
+          enum: [emerging, scaling, mainstream]
+        notableSignals:
+          type: array
+          items:
+            type: string
+        updatedAt:
+          type: string
+          format: date-time
+
+    BriefingItem:
+      type: object
+      required: [id, date, headline, impact]
+      properties:
+        id:
+          type: string
+        date:
+          type: string
+        headline:
+          type: string
+        impact:
+          type: string
+
+    SourceFeed:
+      type: object
+      required: [id, name, type, url, lastCheckedAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [paper, product, policy, market]
+        url:
+          type: string
+          format: uri
+        lastCheckedAt:
+          type: string
+          format: date-time
+
+    HotTopicsPageData:
+      type: object
+      required: [generatedAt, headline, subheadline, stats, topics, briefing, watchlist, sources]
+      properties:
+        generatedAt:
+          type: string
+          format: date-time
+        headline:
+          type: string
+        subheadline:
+          type: string
+        stats:
+          type: array
+          items:
+            $ref: "#/components/schemas/MarketStat"
+        topics:
+          type: array
+          items:
+            $ref: "#/components/schemas/Topic"
+        briefing:
+          type: array
+          items:
+            $ref: "#/components/schemas/BriefingItem"
+        watchlist:
+          type: array
+          items:
+            type: string
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/SourceFeed"
+
+    AgentStatus:
+      type: string
+      enum: [idle, running, busy, offline, error]
+
+    Agent:
+      type: object
+      required: [id, name, status, owner, task, lastHeartbeatAt, updatedAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          $ref: "#/components/schemas/AgentStatus"
+        owner:
+          type: string
+        task:
+          type: string
+        lastHeartbeatAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    GatewayStatusUpdate:
+      type: object
+      required: [agentId, status, message, at]
+      properties:
+        agentId:
+          type: string
+        status:
+          $ref: "#/components/schemas/AgentStatus"
+        message:
+          type: string
+        at:
+          type: string
+          format: date-time
+
+    OfficeSnapshot:
+      type: object
+      required: [source, capturedAt, agents, lastGatewayUpdate]
+      properties:
+        source:
+          type: string
+          enum: [mock, live]
+        capturedAt:
+          type: string
+          format: date-time
+        agents:
+          type: array
+          items:
+            $ref: "#/components/schemas/Agent"
+        lastGatewayUpdate:
+          nullable: true
+          $ref: "#/components/schemas/GatewayStatusUpdate"
