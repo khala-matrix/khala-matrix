@@ -67,7 +67,7 @@ export default function OfficeLiveView({
   initialSnapshot: OpenclawOfficeSnapshot;
 }) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
-  const [wsConnected, setWsConnected] = useState(false);
+  const wsConnected = !!process.env.NEXT_PUBLIC_WS_URL;
   const [gatewayStatus, setGatewayStatus] = useState<GatewayClientStatus | null>(null);
   const [gatewayEnabled, setGatewayEnabled] = useState<boolean | null>(null);
 
@@ -135,12 +135,6 @@ export default function OfficeLiveView({
     agent_status_change: handleAgentChange,
     gateway_status: handleGatewayStatus,
   });
-
-  // Track WS connection state via NEXT_PUBLIC_WS_URL presence
-  useEffect(() => {
-    const url = process.env.NEXT_PUBLIC_WS_URL;
-    setWsConnected(!!url);
-  }, []);
 
   const statusCounts = useMemo(() => {
     const counts = Object.fromEntries(
