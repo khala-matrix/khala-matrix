@@ -36,6 +36,7 @@ export const MOCK_HOT_TOPICS_PAGE_DATA: HotTopicsPageData = {
       id: "multimodal-models",
       title: "Multimodal foundation models",
       domain: "Model Platforms",
+      category: "LLM",
       summary:
         "Teams are shipping single-model pipelines for text, image, and video operations in production customer workflows.",
       heatScore: 93,
@@ -52,6 +53,7 @@ export const MOCK_HOT_TOPICS_PAGE_DATA: HotTopicsPageData = {
       id: "agent-orchestration",
       title: "Multi-agent orchestration",
       domain: "Agent Systems",
+      category: "AI Infrastructure",
       summary:
         "Orchestrated specialist agents are replacing single-agent assistants in internal operations and support stacks.",
       heatScore: 89,
@@ -68,6 +70,7 @@ export const MOCK_HOT_TOPICS_PAGE_DATA: HotTopicsPageData = {
       id: "on-device-ai",
       title: "On-device inference stacks",
       domain: "AI Infrastructure",
+      category: "AI Infrastructure",
       summary:
         "Edge and mobile inference acceleration are driving low-latency private AI features across consumer products.",
       heatScore: 84,
@@ -84,6 +87,7 @@ export const MOCK_HOT_TOPICS_PAGE_DATA: HotTopicsPageData = {
       id: "governance-automation",
       title: "AI governance automation",
       domain: "Policy & Compliance",
+      category: "Policy & Compliance",
       summary:
         "Policy-as-code and automated model review are becoming requirements for regulated deployments.",
       heatScore: 79,
@@ -100,6 +104,7 @@ export const MOCK_HOT_TOPICS_PAGE_DATA: HotTopicsPageData = {
       id: "synthetic-data-engines",
       title: "Synthetic data engines",
       domain: "Data Platforms",
+      category: "Data Platforms",
       summary:
         "Synthetic datasets are being adopted to unblock low-data domains and privacy-sensitive training loops.",
       heatScore: 73,
