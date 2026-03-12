@@ -1,6 +1,17 @@
+"use client";
+
 import Link from "next/link";
-import { loadHotTopicsPageData } from "@/lib/hot-topics/load-hot-topics";
-import { Topic } from "@/lib/hot-topics/types";
+import { useEffect, useMemo, useState } from "react";
+import { MOCK_HOT_TOPICS_PAGE_DATA } from "@/lib/hot-topics/mock-data";
+import { HotTopicsPageData, Topic } from "@/lib/hot-topics/types";
+
+const FILTERS_STORAGE_KEY = "hot-topics-filters";
+const PAGE_DATA_ENDPOINT = "/api/v1/hot-topics/page-data";
+
+type TopicFilters = {
+  category: string;
+  search: string;
+};
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
@@ -23,8 +34,187 @@ function maturityLabel(topic: Topic) {
   return "Emerging";
 }
 
-export default async function Home() {
-  const { data, mode } = await loadHotTopicsPageData();
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function isHotTopicsPageData(value: unknown): value is HotTopicsPageData {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.generatedAt === "string" &&
+    typeof value.headline === "string" &&
+    typeof value.subheadline === "string" &&
+    Array.isArray(value.stats) &&
+    Array.isArray(value.topics) &&
+    Array.isArray(value.briefing) &&
+    isStringArray(value.watchlist) &&
+    Array.isArray(value.sources)
+  );
+}
+
+type FilterBarProps = {
+  categories: string[];
+  filters: TopicFilters;
+  onFiltersChange: (nextFilters: TopicFilters) => void;
+  onClear: () => void;
+};
+
+function FilterBar({
+  categories,
+  filters,
+  onFiltersChange,
+  onClear,
+}: FilterBarProps) {
+  const hasActiveFilters = Boolean(filters.category || filters.search.trim());
+
+  return (
+    <div className="panel rounded-2xl p-4">
+      <div className="grid gap-3 md:grid-cols-[220px_1fr_auto] md:items-center">
+        <label className="flex flex-col gap-2 text-sm text-[var(--muted)]">
+          Category
+          <select
+            value={filters.category}
+            onChange={(event) =>
+              onFiltersChange({
+                ...filters,
+                category: event.target.value,
+              })
+            }
+            className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--primary)]"
+          >
+            <option value="">All categories</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex flex-col gap-2 text-sm text-[var(--muted)]">
+          Search
+          <input
+            value={filters.search}
+            onChange={(event) =>
+              onFiltersChange({
+                ...filters,
+                search: event.target.value,
+              })
+            }
+            placeholder="Search title or summary"
+            className="rounded-xl border border-[var(--line)] bg-white px-3 py-2 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--primary)]"
+          />
+        </label>
+
+        <button
+          type="button"
+          onClick={onClear}
+          disabled={!hasActiveFilters}
+          className="rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm font-semibold transition enabled:hover:border-[var(--primary)] enabled:hover:text-[var(--primary)] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Clear filters
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function Home() {
+  const [data, setData] = useState<HotTopicsPageData>(MOCK_HOT_TOPICS_PAGE_DATA);
+  const [mode, setMode] = useState<"mock" | "backend">("mock");
+  const [filters, setFilters] = useState<TopicFilters>({
+    category: "",
+    search: "",
+  });
+  const [isFiltersHydrated, setIsFiltersHydrated] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchData = async () => {
+      try {
+        const response = await fetch(PAGE_DATA_ENDPOINT, {
+          headers: {
+            Accept: "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`page-data request failed with status ${response.status}`);
+        }
+
+        const payload = (await response.json()) as unknown;
+
+        if (!cancelled && isHotTopicsPageData(payload)) {
+          setData(payload);
+          setMode("mock");
+        }
+      } catch (error) {
+        console.warn("Unable to refresh hot topics payload from API route.", error);
+      }
+    };
+
+    void fetchData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    try {
+      const rawFilters = window.localStorage.getItem(FILTERS_STORAGE_KEY);
+
+      if (!rawFilters) {
+        return;
+      }
+
+      const parsed = JSON.parse(rawFilters) as Partial<TopicFilters>;
+
+      setFilters({
+        category: typeof parsed.category === "string" ? parsed.category : "",
+        search: typeof parsed.search === "string" ? parsed.search : "",
+      });
+    } catch (error) {
+      console.warn("Unable to restore topic filters from localStorage.", error);
+    } finally {
+      setIsFiltersHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isFiltersHydrated) {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(filters));
+    } catch (error) {
+      console.warn("Unable to persist topic filters to localStorage.", error);
+    }
+  }, [filters, isFiltersHydrated]);
+
+  const categories = useMemo(
+    () => Array.from(new Set(data.topics.map((topic) => topic.category))),
+    [data.topics],
+  );
+
+  const filteredTopics = data.topics.filter((topic) => {
+    const matchCategory = !filters.category || topic.category === filters.category;
+    const matchSearch =
+      !filters.search ||
+      topic.title.toLowerCase().includes(filters.search.toLowerCase()) ||
+      topic.summary.toLowerCase().includes(filters.search.toLowerCase());
+
+    return matchCategory && matchSearch;
+  });
 
   return (
     <div className="app-shell">
@@ -120,8 +310,20 @@ export default async function Home() {
             <p className="text-sm text-[var(--muted)]">Sorted by internal heat score and weekly movement.</p>
           </div>
 
+          <FilterBar
+            categories={categories}
+            filters={filters}
+            onFiltersChange={setFilters}
+            onClear={() =>
+              setFilters({
+                category: "",
+                search: "",
+              })
+            }
+          />
+
           <div className="grid gap-4 lg:grid-cols-2">
-            {data.topics.map((topic, index) => (
+            {filteredTopics.map((topic, index) => (
               <article
                 key={topic.id}
                 className="stagger panel-strong rounded-3xl p-5"
@@ -159,6 +361,13 @@ export default async function Home() {
                 </ul>
               </article>
             ))}
+            {filteredTopics.length === 0 ? (
+              <article className="panel rounded-3xl p-6 lg:col-span-2">
+                <p className="text-sm text-[var(--muted)]">
+                  No topics match the current filters. Try clearing category or search.
+                </p>
+              </article>
+            ) : null}
           </div>
         </section>
 
